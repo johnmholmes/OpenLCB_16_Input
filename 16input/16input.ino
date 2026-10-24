@@ -1,33 +1,3 @@
-/* 16input_v1.0.2
-
-This is my test version for demonstration of a CAN Bus node only by John Holmes
-  - Pins 15 RX and 2 TX for the transceiver module
-  - Pins D4,D16,D17,D5,D18,D19,D21,D22,D13,D12,D14,D27,D26,D25,D33,D32  are used for input
-*/
-
-/*
-==============================================================
- Based of the AVR 2Servos NIO using ESPcan
-
- Copyright 2024 David P Harris
- derived from work by Alex Shepherd and David Harris
- Updated 2024.11.14 DPH
- Modified by John Holmes June 2026 for 16 inputs
-==============================================================
- - 16 input channels:
-     - type: 0=None, 
-             1=Input, 2=Input inverted, 
-             3=Input with pull-up, 
-             4=Input with pull-up inverted, 
-             5=Input toggle, 
-             6=Toggle with pull-up
-     - Inputs:
-       - Events are produced
-       - On-delay: delay before on-event is sent
-       - Off-delay: the period before the off-event is sent
-==============================================================
-*/
-
 #include "Config.h"
 #include "Boards.h"
 
@@ -169,68 +139,63 @@ void produceInitialStates() {
 
 // ====================== INPUT PROCESSING ======================
 void produceFromInputs() {
-    static uint8_t c = 0;
     static unsigned long last = 0;
     
-    if((millis() - last) < 20) return;   // Scan every 20ms
+    if((millis() - last) < 20) return;   // Scan all pins every 20ms
     last = millis();
 
-    uint8_t type = NODECONFIG.read(EEADDR(io[c].type));
-    if(type == 0) {
-        if(++c >= NUM_IO) c = 0;
-        return;
-    }
-
-    bool s = digitalRead(iopin[c]);
-    uint16_t baseIndex = (uint16_t)c * 2;
-
-    // Simple debouncing
     static uint8_t debounceCount[NUM_IO] = {0};
     const uint8_t DEBOUNCE_THRESHOLD = 4;
 
-    if (s == iostate[c]) {
-        debounceCount[c] = 0;
-    } else {
-        debounceCount[c]++;
-        if (debounceCount[c] >= DEBOUNCE_THRESHOLD) {
-            iostate[c] = s;
+    for(uint8_t c = 0; c < NUM_IO; c++) {
+        uint8_t type = NODECONFIG.read(EEADDR(io[c].type));
+        if(type == 0) continue;
 
-            if(type==5 || type==6) {                    // Toggle
-                if(!s) {
-                    logstate[c] ^= 1;
-                    uint8_t d = logstate[c] ? 
+        bool s = digitalRead(iopin[c]);
+        uint16_t baseIndex = (uint16_t)c * 2;
+
+        if (s == iostate[c]) {
+            debounceCount[c] = 0;
+        } else {
+            debounceCount[c]++;
+            if (debounceCount[c] >= DEBOUNCE_THRESHOLD) {
+                iostate[c] = s;
+
+                if(type == 5 || type == 6) {                    // Toggle
+                    if(!s) {
+                        logstate[c] ^= 1;
+                        uint8_t d = logstate[c] ? 
+                            NODECONFIG.read(EEADDR(io[c].duration)) :
+                            NODECONFIG.read(EEADDR(io[c].period));
+
+                        uint16_t evt = baseIndex + (logstate[c] ? 0 : 1);
+
+                        if(d == 0) OpenLcb.produce(evt);
+                        else {
+                            next[c] = millis() + (uint16_t)d * 100;
+                            pendingEvent[c] = evt;
+                        }
+                    }
+                }
+                else if(type > 0 && type < 5) {             // Normal inputs
+                    bool logicHigh = !s ^ (type & 1);
+
+                    uint8_t d = logicHigh ? 
                         NODECONFIG.read(EEADDR(io[c].duration)) :
                         NODECONFIG.read(EEADDR(io[c].period));
 
-                    uint16_t evt = baseIndex + (logstate[c] ? 0 : 1);
+                    uint16_t evt = baseIndex + (logicHigh ? 0 : 1);
 
-                    if(d==0) OpenLcb.produce(evt);
+                    if(d == 0) OpenLcb.produce(evt);
                     else {
                         next[c] = millis() + (uint16_t)d * 100;
                         pendingEvent[c] = evt;
                     }
                 }
+                debounceCount[c] = 0;
             }
-            else if(type > 0 && type < 5) {             // Normal inputs
-                bool logicHigh = !s ^ (type & 1);
-
-                uint8_t d = logicHigh ? 
-                    NODECONFIG.read(EEADDR(io[c].duration)) :
-                    NODECONFIG.read(EEADDR(io[c].period));
-
-                uint16_t evt = baseIndex + (logicHigh ? 0 : 1);
-
-                if(d==0) OpenLcb.produce(evt);
-                else {
-                    next[c] = millis() + (uint16_t)d * 100;
-                    pendingEvent[c] = evt;
-                }
-            }
-            debounceCount[c] = 0;
         }
     }
-
-    if(++c >= NUM_IO) c = 0;
 }
 
 // Process delayed events

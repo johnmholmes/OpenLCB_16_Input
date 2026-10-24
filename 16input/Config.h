@@ -6,7 +6,7 @@
 #define RESET_TO_FACTORY_DEFAULTS 1
 
 // To set a new nodeid edit the next line
-#define NODE_ADDRESS  0x05,0x01,0x01,0x01,0x8E,0x03 // must be unique from an address space owned by you or DIY
+#define NODE_ADDRESS  0x05,0x01,0x01,0x01,0x8E,0x02 // must be unique from an address space owned by you or DIY
 
 // Choose a board, uncomment one line, see boards.h
 #define ESP32_BOARD
@@ -27,7 +27,7 @@
 #define MANU "OpenLCB"           // The manufacturer of node
 #define MODEL BOARD "16 input"  // The model of the board
 #define HWVERSION "ESP Basic"          // Hardware version
-#define SWVERSION "1.0.4"          // Software version
+#define SWVERSION "1.0.5"          // Software version
 
 #ifdef USEGCSERIAL
   #include "GCSerial.h"
