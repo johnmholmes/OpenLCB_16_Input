@@ -27,7 +27,7 @@
 #define MANU "OpenLCB"           // The manufacturer of node
 #define MODEL BOARD "16 input"  // The model of the board
 #define HWVERSION "ESP Basic"          // Hardware version
-#define SWVERSION "1.0.5"          // Software version
+#define SWVERSION "1.0.6"          // Software version
 
 #ifdef USEGCSERIAL
   #include "GCSerial.h"
