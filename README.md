@@ -18,6 +18,10 @@ By downloading, using, or modifying this sketch, you acknowledge that you assume
 
 The author reserves the right to modify or remove this sketch at any time without notice.
 
+- D12 is used but care must be taken when using it as an input. 
+The IR sensors powered by 3.3 volts will hold the Pin HIGH at bootup stoping the ESP32 from booting up. 
+This only occurs if the sensor does not detect a loco above it.
+
 ---
 
 mimor version changes should not effect saved backup and restore .txt files created from JMRI. However any major changes with extra events will break the previous version Backup file.
